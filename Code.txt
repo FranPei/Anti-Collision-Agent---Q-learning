@@ -1,0 +1,1596 @@
+2.7.1.- Programación del agente
+A continuación se presentan los tramos de códigos pertenecientes al código completo
+del agente con la descripción de cada uno.
+2.7.1.1.- Declaración de los objetos modelados
+Se declaran los objetos a utilizar haciendo uso de la función sim.getObjectHandle.
+Esta función permite tomar los objetos de la escena que participan en la simulación.
+ objeto=sim.getObjectHandle('Cuboid0')
+ rueda_d=sim.getObjectHandle('rue_der')
+ rueda_i=sim.getObjectHandle('rue_izq')
+ s5=sim.getObjectHandle('S5')
+ s4=sim.getObjectHandle('S4')
+ s3=sim.getObjectHandle('S3')
+ s2=sim.getObjectHandle('S2')
+ s1=sim.getObjectHandle('S1')
+2.7.1.2.- Declaración de las variables
+Se declaran las variables que utiliza el programa del agente.
+ radio=0.04
+ tiempo = 0
+ max_speed=0.10
+ dist5=0
+ dist4=0
+ dist3=0
+ dist2=0
+ dist1=0
+ mayor=0
+ contador = 0
+ lamda=0.95
+ pasosepi=0
+ episodionuevo=false
+2.7.1.3.- Acceso al archivo de guardado
+La siguiente línea de código permite abrir el archivo con los datos guardados en cada
+episodio.
+dofile("./pf_ql_AC_PF.txt")
+
+2.7.1.4.- Declaración de la interfaz de usuario
+Esta parte del código genera la interfaz de usuario con los botones de “Episodio
+Actual” y “Episodio Siguiente”.
+ ui=simUI.create('<ui enabled="true" modal="false" title="Episodio" closeable="true"
+ layout="vbox" placement="relative" position="20,20">' ..
+'<button enabled="true" text="Episodio Actual" checkable="true" onclick="EpisodioActual"></button>' ..
+'<button enabled="true" text="Episodio Siguiente" checkable="true" onclick="Episodio_Siguiente"></button>' ..
+ '</ui>')
+Al presionar el botón de “Episodio Actual” se imprime en el terminal del simulador los
+valores actuales de la matriz 𝑄 y de la matriz 𝑄 normalizada.
+Al presionar el botón de “Episodio Siguiente” finalizada el episodio, imprime y guarda
+los valores de la matriz 𝑄 y de la matriz 𝑄 normalizada junto con el número de pasos
+totales y el número de pasos en el episodio.
+2.7.1.5.- Declaración de las matrices
+
+Se declaran las matrices que se utilizan para la implementación del aprendizaje.
+estado={
+{0, 0, 0, 0, 0, 0},
+{0, 0, 0, 0, 1, 0},
+{0, 0, 0, 1, 0, 0},
+{0, 0, 0, 1, 1, 0},
+{0, 0, 1, 0, 0, 0},
+{0, 0, 1, 0, 1, 0},
+{0, 0, 1, 1, 0, 0},
+{0, 0, 1, 1, 1, 0},
+{0, 1, 0, 0, 0, 0},
+{0, 1, 0, 0, 1, 0},
+{0, 1, 0, 1, 0, 0},
+{0, 1, 0, 1, 1, 0},
+{0,1, 1, 0, 0, 0},
+{0,1, 1, 0, 1, 0},
+{0,1, 1, 1, 0, 0},
+{0,1, 1, 1, 1, 0},
+{1, 0, 0, 0, 0, 0},
+{1, 0, 0, 0, 1, 0},
+{1, 0, 0, 1, 0, 0},
+{1, 0, 0, 1, 1, 0},
+{1, 0, 1, 0, 0, 0},
+{1, 0, 1, 0, 1, 0},
+{1, 0, 1, 1, 0, 0},
+{1, 0, 1, 1, 1, 0},
+{1, 1, 0, 0, 0, 0},
+{1, 1, 0, 0, 1, 0},
+{1, 1, 0, 1, 0, 0},
+{1, 1, 0, 1, 1, 0},
+{1, 1, 1, 0, 0, 0},
+{1, 1, 1, 0, 1, 0},
+{1, 1, 1, 1, 0, 0},
+{1, 1, 1, 1, 1, 0},--32
+{0, 0, 0, 0, -1, 4},
+{0, 0, 0, 1, -1, 4},
+{0, 0, 0,-1, 0, 4},
+{0, 0, 0,-1, 1, 4},
+{0, 0, 0,-1, -1, 4},
+{0, 0, 1, 0, -1, 4},
+{0, 0, 1, 1, -1, 4},
+{0, 0, 1,-1, 0, 4},
+{0, 0, 1,-1, 1, 4},
+{0, 0, 1,-1, -1, 4},
+{0, 0,-1, 0, 0, 4},
+{0, 0,-1, 0, 1, 4},
+{0, 0,-1, 0, -1, 4},
+{0, 0,-1, 1, 0, 4},
+{0, 0,-1, 1, 1, 4},
+{0, 0,-1, 1, -1, 4},
+{0, 0,-1,-1, 0, 4},
+{0, 0,-1,-1, 1, 4},
+{0, 0,-1,-1, -1, 4},
+{0, 1, 0, 0, -1, 4},
+{0, 1, 0, 1, -1, 4},
+{0, 1, 0,-1, 0, 4},
+{0, 1, 0,-1, 1, 4},
+{0, 1, 0,-1, -1, 4},
+{0,1, 1, 0, -1, 4},
+{0,1, 1, 1, -1, 4},
+{0,1, 1,-1, 0, 4},
+{0,1, 1,-1, 1, 4},
+{0,1, 1,-1, -1, 4},
+{0,1,-1, 0, 0, 4},
+{0,1,-1, 0, 1, 4},
+{0,1,-1, 0, -1, 4},
+{0,1,-1, 1, 0, 4},
+{0,1,-1, 1, 1, 4},
+{0,1,-1, 1, -1, 4},
+{0,1,-1,-1, 0, 4},
+{0,1,-1,-1, 1, 4},
+{0,1,-1,-1, -1, 4},
+{0,-1, 0, 0, 0, 4},
+{0,-1, 0, 0, 1, 4},
+{0,-1, 0, 0, -1, 4},
+{0,-1, 0, 1, 0, 4},
+{0,-1, 0, 1, 1, 4},
+{0,-1, 0, 1, -1, 4},
+{0,-1, 0,-1, 0, 4},
+{0,-1, 0,-1, 1, 4},
+{0,-1, 0,-1, -1, 4},
+{0,-1, 1, 0, 0, 4},
+{0,-1, 1, 0, 1, 4},
+{0,-1, 1, 0, -1, 4},
+{0,-1, 1, 1, 0, 4},
+{0,-1, 1, 1, 1, 4},
+{0,-1, 1, 1, -1, 4},
+{0,-1, 1,-1, 0, 4},
+{0,-1, 1,-1, 1, 4},
+{0,-1, 1,-1, -1, 4},
+{0,-1,-1, 0, 0, 4},
+{0,-1,-1, 0, 1, 4},
+{0,-1,-1, 0, -1, 4},
+{0,-1,-1, 1, 0, 4},
+{0,-1,-1, 1, 1, 4},
+{0,-1,-1, 1, -1, 4},
+{0,-1,-1,-1, 0, 4},
+{0,-1,-1,-1, 1, 4},
+{0,-1,-1,-1, -1, 4},
+{1, 0, 0, 0, -1, 4},
+{1, 0, 0, 1, -1, 4},
+{1, 0, 0,-1, 0, 4},
+{1, 0, 0,-1, 1, 4},
+{1, 0, 0,-1, -1, 4},
+{1, 0, 1, 0, -1, 4},
+{1, 0, 1, 1, -1, 4},
+{1, 0, 1,-1, 0, 4},
+{1, 0, 1,-1, 1, 4},
+{1, 0, 1,-1, -1, 4},
+{1, 0,-1, 0, 0, 4},
+{1, 0,-1, 0, 1, 4},
+{1, 0,-1, 0, -1, 4},
+{1, 0,-1, 1, 0, 4},
+{1, 0,-1, 1, 1, 4},
+{1, 0,-1, 1, -1, 4},
+{1, 0,-1,-1, 0, 4},
+{1, 0,-1,-1, 1, 4},
+{1, 0,-1,-1, -1, 4},
+{1, 1, 0, 0, -1, 4},
+{1, 1, 0, 1, -1, 4},
+{1, 1, 0,-1, 0, 4},
+{1, 1, 0,-1, 1, 4},
+{1, 1, 0,-1, -1, 4},
+{1, 1, 1, 0, -1, 4},
+{1, 1, 1, 1, -1, 4},
+{1, 1, 1,-1, 0, 4},
+{1, 1, 1,-1, 1, 4},
+{1, 1, 1,-1, -1, 4},
+{1, 1,-1, 0, 0, 4},
+{1, 1,-1, 0, 1, 4},
+{1, 1,-1, 0, -1, 4},
+{1, 1,-1, 1, 0, 4},
+{1, 1,-1, 1, 1, 4},
+{1, 1,-1, 1, -1, 4},
+{1, 1,-1,-1, 0, 4},
+{1, 1,-1,-1, 1, 4},
+{1, 1,-1,-1, -1, 4},
+{1,-1, 0, 0, 0, 4},
+{1,-1, 0, 0, 1, 4},
+{1,-1, 0, 0, -1, 4},
+{1,-1, 0, 1, 0, 4},
+{1,-1, 0, 1, 1, 4},
+{1,-1, 0, 1, -1, 4},
+{1,-1, 0,-1, 0, 4},
+{1,-1, 0,-1, 1, 4},
+{1,-1, 0,-1, -1, 4},
+{1,-1, 1, 0, 0, 4},
+{1,-1, 1, 0, 1, 4},
+{1,-1, 1, 0, -1, 4},
+{1,-1, 1, 1, 0, 4},
+{1,-1, 1, 1, 1, 4},
+{1,-1, 1, 1, -1, 4},
+{1,-1, 1,-1, 0, 4},
+{1,-1, 1,-1, 1, 4},
+{1,-1, 1,-1, -1, 4},
+{1,-1,-1, 0, 0, 4},
+{1,-1,-1, 0, 1, 4},
+{1,-1,-1, 0, -1, 4},
+{1,-1,-1, 1, 0, 4},
+{1,-1,-1, 1, 1, 4},
+{1,-1,-1, 1, -1, 4},
+{1,-1,-1,-1, 0, 4},
+{1,-1,-1,-1, 1, 4},
+{1,-1,-1,-1, -1, 4},
+{-1, 0, 0, 0, 0, 4},
+{-1, 0, 0, 0, 1, 4},
+{-1, 0, 0, 0, -1, 4},
+{-1, 0, 0, 1, 0, 4},
+{-1, 0, 0, 1, 1, 4},
+{-1, 0, 0, 1, -1, 4},
+{-1, 0, 0,-1, 0, 4},
+{-1, 0, 0,-1, 1, 4},
+{-1, 0, 0,-1, -1, 4},
+{-1, 0, 1, 0, 0, 4},
+{-1, 0, 1, 0, 1, 4},
+{-1, 0, 1, 0, -1, 4},
+{-1, 0, 1, 1, 0, 4},
+{-1, 0, 1, 1, 1, 4},
+{-1, 0, 1, 1, -1, 4},
+{-1, 0, 1,-1, 0, 4},
+{-1, 0, 1,-1, 1, 4},
+{-1, 0, 1,-1, -1, 4},
+{-1, 0,-1, 0, 0, 4},
+{-1, 0,-1, 0, 1, 4},
+{-1, 0,-1, 0, -1, 4},
+{-1, 0,-1, 1, 0, 4},
+{-1, 0,-1, 1, 1, 4},
+{-1, 0,-1, 1, -1, 4},
+{-1, 0,-1,-1, 0, 4},
+{-1, 0,-1,-1, 1, 4},
+{-1, 0,-1,-1, -1, 4},
+{-1, 1, 0, 0, 0, 4},
+{-1, 1, 0, 0, 1, 4},
+{-1, 1, 0, 0, -1, 4},
+{-1, 1, 0, 1, 0, 4},
+{-1, 1, 0, 1, 1, 4},
+{-1, 1, 0, 1, -1, 4},
+{-1, 1, 0,-1, 0, 4},
+{-1, 1, 0,-1, 1, 4},
+{-1, 1, 0,-1, -1, 4},
+{-1, 1, 1, 0, 0, 4},
+{-1, 1, 1, 0, 1, 4},
+{-1, 1, 1, 0, -1, 4},
+{-1, 1, 1, 1, 0, 4},
+{-1, 1, 1, 1, 1, 4},
+{-1, 1, 1, 1, -1, 4},
+{-1, 1, 1,-1, 0, 4},
+{-1, 1, 1,-1, 1, 4},
+{-1, 1, 1,-1, -1, 4},
+{-1, 1,-1, 0, 0, 4},
+{-1, 1,-1, 0, 1, 4},
+{-1, 1,-1, 0, -1, 4},
+{-1, 1,-1, 1, 0, 4},
+{-1, 1,-1, 1, 1, 4},
+{-1, 1,-1, 1, -1, 4},
+{-1, 1,-1,-1, 0, 4},
+{-1, 1,-1,-1, 1, 4},
+{-1, 1,-1,-1, -1, 4},
+{-1,-1, 0, 0, 0, 4},
+{-1,-1, 0, 0, 1, 4},
+{-1,-1, 0, 0, -1, 4},
+{-1,-1, 0, 1, 0, 4},
+{-1,-1, 0, 1, 1, 4},
+{-1,-1, 0, 1, -1, 4},
+{-1,-1, 0,-1, 0, 4},
+{-1,-1, 0,-1, 1, 4},
+{-1,-1, 0,-1, -1, 4},
+{-1,-1, 1, 0, 0, 4},
+{-1,-1, 1, 0, 1, 4},
+{-1,-1, 1, 0, -1, 4},
+{-1,-1, 1, 1, 0, 4},
+{-1,-1, 1, 1, 1, 4},
+{-1,-1, 1, 1, -1, 4},
+{-1,-1, 1,-1, 0, 4},
+{-1,-1, 1,-1, 1, 4},
+{-1,-1, 1,-1, -1, 4},
+{-1,-1,-1, 0, 0, 4},
+{-1,-1,-1, 0, 1, 4},
+{-1,-1,-1, 0, -1, 4},
+{-1,-1,-1, 1, 0, 4},
+{-1,-1,-1, 1, 1, 4},
+{-1,-1,-1, 1, -1, 4},
+{-1,-1,-1,-1, 0, 4},
+{-1,-1,-1,-1, 1, 4},
+{-1,-1,-1,-1, -1, 4}--243
+}
+qle={
+ { 0, 0, 0}, --0
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0} --32
+}
+qla={
+ { 0, 0, 0}, --0
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0} --32
+}
+Q={
+ { 0, 0, 0}, --0
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0} --32
+}
+rl={
+{0, 0, 0, 0, 0, 25},
+{0, 0, 0, 0, 1, 15},
+{0, 0, 0, 1, 0, 15},
+{0, 0, 0, 1, 1, 5},
+{0, 0, 1, 0, 0, 15},
+{0, 0, 1, 0, 1, 5},
+{0, 0, 1, 1, 0, 5},
+{0, 0, 1, 1, 1, -5},
+{0, 1, 0, 0, 0, 15},
+{0, 1, 0, 0, 1, 5},
+{0, 1, 0, 1, 0, 5},
+{0, 1, 0, 1, 1, -5},
+{0,1, 1, 0, 0, 5},
+{0,1, 1, 0, 1, -5},
+{0,1, 1, 1, 0, -5},
+{0,1, 1, 1, 1, -15},
+{1, 0, 0, 0, 0, 15},
+{1, 0, 0, 0, 1, 5},
+{1, 0, 0, 1, 0, 5},
+{1, 0, 0, 1, 1, -5},
+{1, 0, 1, 0, 0, 5},
+{1, 0, 1, 0, 1, -5},
+{1, 0, 1, 1, 0, -5},
+{1, 0, 1, 1, 1, -15},
+{1, 1, 0, 0, 0, -5},
+{1, 1, 0, 0, 1, -5},
+{1, 1, 0, 1, 0, -5},
+{1, 1, 0, 1, 1, -15},
+{1, 1, 1, 0, 0, -5},
+{1, 1, 1, 0, 1, -15},
+{1, 1, 1, 1, 0, -15},
+{1, 1, 1, 1, 1, -25}--32
+}
+2.7.1.2.- Control de los motores
+A continuación se detalla el código que abarca el control de los movimientos del
+agente haciendo uso de los objetos rueda_d y rueda_i.
+function forward()
+sim.setJointTargetVelocity(rueda_d,1*max_speed/radio)
+sim.setJointTargetVelocity(rueda_i,1*max_speed/radio)
+
+end
+function left()
+sim.setJointTargetVelocity(rueda_d,1*max_speed/radio)
+sim.setJointTargetVelocity(rueda_i,0*max_speed/radio)-- -1
+
+end
+function right()
+
+sim.setJointTargetVelocity(rueda_d,0*max_speed/radio)-- -1
+sim.setJointTargetVelocity(rueda_i,1*max_speed/radio)
+
+end
+function stop()
+
+ sim.setJointTargetVelocity(rueda_d,0)
+ sim.setJointTargetVelocity(rueda_i,0)
+end
+2.7.1.3.- Control de los sensores
+Dentro de la sección sysCall_sensing() se llama a la función Sensor(). En esta función
+se lleva a cabo la discretización de los datos arrojados por cada uno de los sensores.
+dist5=Sensor(s5)
+dist4=Sensor(s4)
+dist3=Sensor(s3)
+dist2=Sensor(s2)
+dist1=Sensor(s1)
+end
+2.7.1.4.- Discretización de los datos
+Considerando la distancia medida de cada sensor, el acondicionamiento de los datos
+de la salida es el siguiente:
+ Si la distancia medida es ≥ a 30 cm se asocia dicho rango a un valor de 0.
+ Si la distancia medida es ≥ a 8 cm y < a 30 cm se asocia dicho rango a un valor
+1.
+ Si la distancia medida es < a 8 cm se asocia dicho rango a un valor -1.
+Para llevar a cabo esto se declaró la función Sensor().
+function Sensor(sensor)
+ local dist
+ local detected,distance=sim.readProximitySensor(sensor)
+ if(detected>0) then
+ distance = distance * 100
+
+ if (distance >= 30)then
+ dist = 0;
+ end
+ if (distance < 30 and distance >= 8)then
+ dist = 1;
+ end
+ if (distance < 8)then
+ dist = -1;
+ end
+ else
+ dist=0
+ end
+
+ return dist
+end
+2.7.1.5.- Matriz normalizada
+La matriz 𝑄 se debe normalizar para poder visualizar a que matriz va convergiendo a
+lo largo de los entrenamientos. Para la normalización se obtiene el valor absoluto de
+todos los elementos de la matriz 𝑄 y paso seguido se obtiene el mayor elemento.
+Finalmente, se divide cada elemento de la matriz 𝑄 por el mayor elemento para
+obtener la matriz 𝑄 normalizada. El tramo del código dedicado a esto es el siguiente.
+for z=1, 32, 1 do
+ qla[z][1]= math.abs(qle[z][1])
+ if(qla[z][1]>mayor)then
+ mayor = qla[z][1]
+ end
+ qla[z][2]= math.abs(qle[z][2])
+ if(qla[z][2]>mayor)then
+ mayor = qla[z][2]
+ end
+ qla[z][3]= math.abs(qle[z][3])
+ if(qla[z][3]>mayor)then
+ mayor = qla[z][3]
+ end
+
+end
+print('La matriz normalizada Q es:')
+for z=1, 32, 1 do
+
+ Q[z][1]= (qle[z][1])
+
+ Q[z][2]= (qle[z][2])
+
+ Q[z][3]= (qle[z][3])
+
+ valq1= 100*(Q[z][1])/(mayor)
+ Q[z][1]= round(valq1)
+ valq2= 100*(Q[z][2])/(mayor)
+ Q[z][2]= round(valq2)
+ valq3= 100*(Q[z][3])/(mayor)
+ Q[z][3]= round(valq3)
+ if(Q[z][1] == 0)then
+ Q[z][1] = 0
+ end
+ if(Q[z][2] == 0)then
+ Q[z][2] = 0
+ end
+ if(Q[z][3] == 0)then
+ Q[z][3] = 0
+ end
+ print(Q[z][1], Q[z][2], Q[z][3])
+end
+2.7.1.6.- Guardado del progreso de cada episodio
+Para darle continuidad al entrenamiento algunos elementos y variables deben
+guardarse al finalizar cada episodio. La matriz 𝑄 actualizada, el número de episodio, la
+cantidad de pasos, la tasa de aprendizaje, épsilon y el multiplicador de recompensa
+son los elementos que se deben guardar, ya que varían a lo largo del entrenamiento.
+Los pasos del entrenamiento se contabilizan pero se guardan en dos variables
+diferentes: pasos y cont_alfa. La diferencia entre cada uno de ellos es que el primero
+lleva el conteo de los pasos totales durante todo el entrenamiento, en cambio el
+segundo se reinicia a cero cada 500 pasos y se utiliza para decrementar épsilon y la
+tasa de aprendizaje. Finalmente, también se utiliza para incrementar el multiplicador
+de la recompensa.
+El mecanismo de salvado o guardado se lleva a cabo en dos etapas: la primera abre el
+archivo .txt desde sysCall_init con la siguiente línea de código:
+dofile("./pf_ql_AC_PF.txt")
+La segunda etapa es guardar el contenido de cada variable en el archivo con el
+siguiente tramo de código:
+archivo = io.open("pf_ql_AC_PF.txt","w")
+archivo:write("ql= {")
+archivo:close()
+archivo = io.open("pf_ql_AC_PF.txt","a")
+for i=1,31,1 do
+s = tostring(ql[i][1])
+l = tostring(ql[i][2])
+m = tostring(ql[i][3])
+val = "\n".."{"..s..","..l..","..m.."}"..","
+archivo:write(val)
+end
+s = tostring(ql[32][1])
+l = tostring(ql[32][2])
+m = tostring(ql[32][3])
+val = "\n".."{"..s..","..l..","..m.."}"
+archivo:write(val)
+val = "\n".."}"
+archivo:write(val)
+episodios=episodios+1
+e = tostring(episodios)
+val = "\n".."episodios".."="..e
+archivo:write(val)
+p = tostring(pasos)
+val = "\n".."pasos".."="..p
+archivo:write(val)
+c = tostring(cont_alfa)
+val = "\n".."cont_alfa".."="..c
+archivo:write(val)
+a = tostring(alfa)
+val = "\n".."alfa".."="..a
+archivo:write(val)
+ep = tostring(epsilon)
+val = "\n".."epsilon".."="..ep
+archivo:write(val)
+b = tostring(repisodio)
+val = "\n".."repisodio".."="..b
+archivo:write(val)
+archivo:close()
+2.7.1.7.- Código Completo
+function sysCall_init()
+ objeto=sim.getObjectHandle('Cuboid0')
+ rueda_d=sim.getObjectHandle('rue_der')
+ rueda_i=sim.getObjectHandle('rue_izq')
+ s5=sim.getObjectHandle('S5')
+ s4=sim.getObjectHandle('S4')
+ s3=sim.getObjectHandle('S3')
+ s2=sim.getObjectHandle('S2')
+ s1=sim.getObjectHandle('S1')
+ radio=0.04
+ tiempo = 0
+ max_speed=0.10
+ dist5=0
+ dist4=0
+ dist3=0
+ dist2=0
+ dist1=0
+ mayor=0
+ contador = 0
+ lamda=0.95
+ pasosepi=0
+ dofile("./pf_ql_AC_PF.txt")
+ episodionuevo=false
+ ui=simUI.create('<ui enabled="true" modal="false" title="Episodio" closeable="true"
+ layout="vbox" placement="relative" position="20,20">' ..
+'<button enabled="true" text="Episodio Actual" checkable="true" onclick="EpisodioActual"></button>' ..
+'<button enabled="true" text="Episodio Siguiente" checkable="true" onclick="Episodio_Siguiente"></button>' ..
+ '</ui>')
+estado={
+{0, 0, 0, 0, 0, 0},
+{0, 0, 0, 0, 1, 0},
+{0, 0, 0, 1, 0, 0},
+{0, 0, 0, 1, 1, 0},
+{0, 0, 1, 0, 0, 0},
+{0, 0, 1, 0, 1, 0},
+{0, 0, 1, 1, 0, 0},
+{0, 0, 1, 1, 1, 0},
+{0, 1, 0, 0, 0, 0},
+{0, 1, 0, 0, 1, 0},
+{0, 1, 0, 1, 0, 0},
+{0, 1, 0, 1, 1, 0},
+{0,1, 1, 0, 0, 0},
+{0,1, 1, 0, 1, 0},
+{0,1, 1, 1, 0, 0},
+{0,1, 1, 1, 1, 0},
+{1, 0, 0, 0, 0, 0},
+{1, 0, 0, 0, 1, 0},
+{1, 0, 0, 1, 0, 0},
+{1, 0, 0, 1, 1, 0},
+{1, 0, 1, 0, 0, 0},
+{1, 0, 1, 0, 1, 0},
+{1, 0, 1, 1, 0, 0},
+{1, 0, 1, 1, 1, 0},
+{1, 1, 0, 0, 0, 0},
+{1, 1, 0, 0, 1, 0},
+{1, 1, 0, 1, 0, 0},
+{1, 1, 0, 1, 1, 0},
+{1, 1, 1, 0, 0, 0},
+{1, 1, 1, 0, 1, 0},
+{1, 1, 1, 1, 0, 0},
+{1, 1, 1, 1, 1, 0},--32
+{0, 0, 0, 0, -1, 4},
+{0, 0, 0, 1, -1, 4},
+{0, 0, 0,-1, 0, 4},
+{0, 0, 0,-1, 1, 4},
+{0, 0, 0,-1, -1, 4},
+{0, 0, 1, 0, -1, 4},
+{0, 0, 1, 1, -1, 4},
+{0, 0, 1,-1, 0, 4},
+{0, 0, 1,-1, 1, 4},
+{0, 0, 1,-1, -1, 4},
+{0, 0,-1, 0, 0, 4},
+{0, 0,-1, 0, 1, 4},
+{0, 0,-1, 0, -1, 4},
+{0, 0,-1, 1, 0, 4},
+{0, 0,-1, 1, 1, 4},
+{0, 0,-1, 1, -1, 4},
+{0, 0,-1,-1, 0, 4},
+{0, 0,-1,-1, 1, 4},
+{0, 0,-1,-1, -1, 4},
+{0, 1, 0, 0, -1, 4},
+{0, 1, 0, 1, -1, 4},
+{0, 1, 0,-1, 0, 4},
+{0, 1, 0,-1, 1, 4},
+{0, 1, 0,-1, -1, 4},
+{0,1, 1, 0, -1, 4},
+{0,1, 1, 1, -1, 4},
+{0,1, 1,-1, 0, 4},
+{0,1, 1,-1, 1, 4},
+{0,1, 1,-1, -1, 4},
+{0,1,-1, 0, 0, 4},
+{0,1,-1, 0, 1, 4},
+{0,1,-1, 0, -1, 4},
+{0,1,-1, 1, 0, 4},
+{0,1,-1, 1, 1, 4},
+{0,1,-1, 1, -1, 4},
+{0,1,-1,-1, 0, 4},
+{0,1,-1,-1, 1, 4},
+{0,1,-1,-1, -1, 4},
+{0,-1, 0, 0, 0, 4},
+{0,-1, 0, 0, 1, 4},
+{0,-1, 0, 0, -1, 4},
+{0,-1, 0, 1, 0, 4},
+{0,-1, 0, 1, 1, 4},
+{0,-1, 0, 1, -1, 4},
+{0,-1, 0,-1, 0, 4},
+{0,-1, 0,-1, 1, 4},
+{0,-1, 0,-1, -1, 4},
+{0,-1, 1, 0, 0, 4},
+{0,-1, 1, 0, 1, 4},
+{0,-1, 1, 0, -1, 4},
+{0,-1, 1, 1, 0, 4},
+{0,-1, 1, 1, 1, 4},
+{0,-1, 1, 1, -1, 4},
+{0,-1, 1,-1, 0, 4},
+{0,-1, 1,-1, 1, 4},
+{0,-1, 1,-1, -1, 4},
+{0,-1,-1, 0, 0, 4},
+{0,-1,-1, 0, 1, 4},
+{0,-1,-1, 0, -1, 4},
+{0,-1,-1, 1, 0, 4},
+{0,-1,-1, 1, 1, 4},
+{0,-1,-1, 1, -1, 4},
+{0,-1,-1,-1, 0, 4},
+{0,-1,-1,-1, 1, 4},
+{0,-1,-1,-1, -1, 4},
+{1, 0, 0, 0, -1, 4},
+{1, 0, 0, 1, -1, 4},
+{1, 0, 0,-1, 0, 4},
+{1, 0, 0,-1, 1, 4},
+{1, 0, 0,-1, -1, 4},
+{1, 0, 1, 0, -1, 4},
+{1, 0, 1, 1, -1, 4},
+{1, 0, 1,-1, 0, 4},
+{1, 0, 1,-1, 1, 4},
+{1, 0, 1,-1, -1, 4},
+{1, 0,-1, 0, 0, 4},
+{1, 0,-1, 0, 1, 4},
+{1, 0,-1, 0, -1, 4},
+{1, 0,-1, 1, 0, 4},
+{1, 0,-1, 1, 1, 4},
+{1, 0,-1, 1, -1, 4},
+{1, 0,-1,-1, 0, 4},
+{1, 0,-1,-1, 1, 4},
+{1, 0,-1,-1, -1, 4},
+{1, 1, 0, 0, -1, 4},
+{1, 1, 0, 1, -1, 4},
+{1, 1, 0,-1, 0, 4},
+{1, 1, 0,-1, 1, 4},
+{1, 1, 0,-1, -1, 4},
+{1, 1, 1, 0, -1, 4},
+{1, 1, 1, 1, -1, 4},
+{1, 1, 1,-1, 0, 4},
+{1, 1, 1,-1, 1, 4},
+{1, 1, 1,-1, -1, 4},
+{1, 1,-1, 0, 0, 4},
+{1, 1,-1, 0, 1, 4},
+{1, 1,-1, 0, -1, 4},
+{1, 1,-1, 1, 0, 4},
+{1, 1,-1, 1, 1, 4},
+{1, 1,-1, 1, -1, 4},
+{1, 1,-1,-1, 0, 4},
+{1, 1,-1,-1, 1, 4},
+{1, 1,-1,-1, -1, 4},
+{1,-1, 0, 0, 0, 4},
+{1,-1, 0, 0, 1, 4},
+{1,-1, 0, 0, -1, 4},
+{1,-1, 0, 1, 0, 4},
+{1,-1, 0, 1, 1, 4},
+{1,-1, 0, 1, -1, 4},
+{1,-1, 0,-1, 0, 4},
+{1,-1, 0,-1, 1, 4},
+{1,-1, 0,-1, -1, 4},
+{1,-1, 1, 0, 0, 4},
+{1,-1, 1, 0, 1, 4},
+{1,-1, 1, 0, -1, 4},
+{1,-1, 1, 1, 0, 4},
+{1,-1, 1, 1, 1, 4},
+{1,-1, 1, 1, -1, 4},
+{1,-1, 1,-1, 0, 4},
+{1,-1, 1,-1, 1, 4},
+{1,-1, 1,-1, -1, 4},
+{1,-1,-1, 0, 0, 4},
+{1,-1,-1, 0, 1, 4},
+{1,-1,-1, 0, -1, 4},
+{1,-1,-1, 1, 0, 4},
+{1,-1,-1, 1, 1, 4},
+{1,-1,-1, 1, -1, 4},
+{1,-1,-1,-1, 0, 4},
+{1,-1,-1,-1, 1, 4},
+{1,-1,-1,-1, -1, 4},
+{-1, 0, 0, 0, 0, 4},
+{-1, 0, 0, 0, 1, 4},
+{-1, 0, 0, 0, -1, 4},
+{-1, 0, 0, 1, 0, 4},
+{-1, 0, 0, 1, 1, 4},
+{-1, 0, 0, 1, -1, 4},
+{-1, 0, 0,-1, 0, 4},
+{-1, 0, 0,-1, 1, 4},
+{-1, 0, 0,-1, -1, 4},
+{-1, 0, 1, 0, 0, 4},
+{-1, 0, 1, 0, 1, 4},
+{-1, 0, 1, 0, -1, 4},
+{-1, 0, 1, 1, 0, 4},
+{-1, 0, 1, 1, 1, 4},
+{-1, 0, 1, 1, -1, 4},
+{-1, 0, 1,-1, 0, 4},
+{-1, 0, 1,-1, 1, 4},
+{-1, 0, 1,-1, -1, 4},
+{-1, 0,-1, 0, 0, 4},
+{-1, 0,-1, 0, 1, 4},
+{-1, 0,-1, 0, -1, 4},
+{-1, 0,-1, 1, 0, 4},
+{-1, 0,-1, 1, 1, 4},
+{-1, 0,-1, 1, -1, 4},
+{-1, 0,-1,-1, 0, 4},
+{-1, 0,-1,-1, 1, 4},
+{-1, 0,-1,-1, -1, 4},
+{-1, 1, 0, 0, 0, 4},
+{-1, 1, 0, 0, 1, 4},
+{-1, 1, 0, 0, -1, 4},
+{-1, 1, 0, 1, 0, 4},
+{-1, 1, 0, 1, 1, 4},
+{-1, 1, 0, 1, -1, 4},
+{-1, 1, 0,-1, 0, 4},
+{-1, 1, 0,-1, 1, 4},
+{-1, 1, 0,-1, -1, 4},
+{-1, 1, 1, 0, 0, 4},
+{-1, 1, 1, 0, 1, 4},
+{-1, 1, 1, 0, -1, 4},
+{-1, 1, 1, 1, 0, 4},
+{-1, 1, 1, 1, 1, 4},
+{-1, 1, 1, 1, -1, 4},
+{-1, 1, 1,-1, 0, 4},
+{-1, 1, 1,-1, 1, 4},
+{-1, 1, 1,-1, -1, 4},
+{-1, 1,-1, 0, 0, 4},
+{-1, 1,-1, 0, 1, 4},
+{-1, 1,-1, 0, -1, 4},
+{-1, 1,-1, 1, 0, 4},
+{-1, 1,-1, 1, 1, 4},
+{-1, 1,-1, 1, -1, 4},
+{-1, 1,-1,-1, 0, 4},
+{-1, 1,-1,-1, 1, 4},
+{-1, 1,-1,-1, -1, 4},
+{-1,-1, 0, 0, 0, 4},
+{-1,-1, 0, 0, 1, 4},
+{-1,-1, 0, 0, -1, 4},
+{-1,-1, 0, 1, 0, 4},
+{-1,-1, 0, 1, 1, 4},
+{-1,-1, 0, 1, -1, 4},
+{-1,-1, 0,-1, 0, 4},
+{-1,-1, 0,-1, 1, 4},
+{-1,-1, 0,-1, -1, 4},
+{-1,-1, 1, 0, 0, 4},
+{-1,-1, 1, 0, 1, 4},
+{-1,-1, 1, 0, -1, 4},
+{-1,-1, 1, 1, 0, 4},
+{-1,-1, 1, 1, 1, 4},
+{-1,-1, 1, 1, -1, 4},
+{-1,-1, 1,-1, 0, 4},
+{-1,-1, 1,-1, 1, 4},
+{-1,-1, 1,-1, -1, 4},
+{-1,-1,-1, 0, 0, 4},
+{-1,-1,-1, 0, 1, 4},
+{-1,-1,-1, 0, -1, 4},
+{-1,-1,-1, 1, 0, 4},
+{-1,-1,-1, 1, 1, 4},
+{-1,-1,-1, 1, -1, 4},
+{-1,-1,-1,-1, 0, 4},
+{-1,-1,-1,-1, 1, 4},
+{-1,-1,-1,-1, -1, 4}--243
+}
+qle={
+ { 0, 0, 0}, --0
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0} --32
+}
+qla={
+ { 0, 0, 0}, --0
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0} --32
+}
+Q={
+ { 0, 0, 0}, --0
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0},
+ { 0, 0, 0} --32
+}
+rl={
+{0, 0, 0, 0, 0, 25},
+{0, 0, 0, 0, 1, 15},
+{0, 0, 0, 1, 0, 15},
+{0, 0, 0, 1, 1, 5},
+{0, 0, 1, 0, 0, 15},
+{0, 0, 1, 0, 1, 5},
+{0, 0, 1, 1, 0, 5},
+{0, 0, 1, 1, 1, -5},
+{0, 1, 0, 0, 0, 15},
+{0, 1, 0, 0, 1, 5},
+{0, 1, 0, 1, 0, 5},
+{0, 1, 0, 1, 1, -5},
+{0,1, 1, 0, 0, 5},
+{0,1, 1, 0, 1, -5},
+{0,1, 1, 1, 0, -5},
+{0,1, 1, 1, 1, -15},
+{1, 0, 0, 0, 0, 15},
+{1, 0, 0, 0, 1, 5},
+{1, 0, 0, 1, 0, 5},
+{1, 0, 0, 1, 1, -5},
+{1, 0, 1, 0, 0, 5},
+{1, 0, 1, 0, 1, -5},
+{1, 0, 1, 1, 0, -5},
+{1, 0, 1, 1, 1, -15},
+{1, 1, 0, 0, 0, -5},
+{1, 1, 0, 0, 1, -5},
+{1, 1, 0, 1, 0, -5},
+{1, 1, 0, 1, 1, -15},
+{1, 1, 1, 0, 0, -5},
+{1, 1, 1, 0, 1, -15},
+{1, 1, 1, 1, 0, -15},
+{1, 1, 1, 1, 1, -25}--32
+}
+for ll=1, 32, 1 do
+ qle[ll][1]= ql[ll][1]
+ qle[ll][2]= ql[ll][2]
+ qle[ll][3]= ql[ll][3]
+
+end
+end
+function sysCall_actuation()
+
+
+ if(episodionuevo==false)then
+
+
+ for i=1,243,1 do
+ if (estado[i][1] == dist5) then
+ if (estado[i][2] == dist4) then
+ if (estado[i][3] == dist3) then
+ if (estado[i][4] == dist2) then
+ if (estado[i][5] == dist1) then
+
+
+ if(cont_alfa >500)then
+ alfa = alfa - 0.01
+ epsilon = epsilon - 0.25
+ if(epsilon < 0)then
+ repisodio = repisodio + 3
+ end
+ cont_alfa = 0
+ if(alfa <= 0)then
+ alfa = 0
+ end
+ end
+ r_e = math.random()
+ valor_a=math.random(0,100)
+
+ if((r_e <= epsilon)and(i<33))then
+ if((valor_a >0) and (valor_a <= 30))then
+ estado[i][6] = -1
+ m = -1
+ c = 1
+ end
+ if((valor_a) >30 and (valor_a <=60))then
+ estado[i][6] = 0
+ m = 0
+ c = 2
+ end
+ if((valor_a) >60 and (valor_a <=100))then
+ estado[i][6] = 1
+ m = 1
+ c = 3
+ end
+ end
+ if((r_e > epsilon)and(i<33))then
+ maximoe = ql[i][1];
+ m2 = 1
+ for le = 2,3, 1 do
+ if(maximoe < ql[i][le])then
+ maximoe = ql[i][le];
+ m2 = le;
+ end
+ end
+
+ if(m2 == 1)then
+ m = -1
+ c = 1
+ end
+ if(m2 == 2)then
+ m = 0
+ c = 2
+ end
+ if(m2 == 3)then
+ m = 1
+ c = 3
+ end
+ if((maximoe == ql[i][1])and(ql[i][1] == ql[i][2])and(ql[i][2] ~= ql[i][3]))then
+ if((valor_a > 0) and (valor_a <= 50))then
+ m = -1
+ c = 1
+ end
+ if((valor_a > 50) and (valor_a <=100))then
+ m = 0
+ c = 2
+ end
+ end
+ if((maximoe == ql[i][1])and(ql[i][1] == ql[i][3])and(ql[i][1] ~= ql[i][2]))then
+ if((valor_a > 0) and (valor_a <= 50))then
+ m = -1
+ c = 1
+ end
+ if((valor_a > 50) and (valor_a <= 100))then
+ m = 1
+ c = 3
+ end
+ end
+ if((maximoe == ql[i][3])and(ql[i][3] == ql[i][2])and(ql[i][3] ~= ql[i][1]))then
+ if((valor_a > 0) and (valor_a <= 50))then
+ m = 0;
+ c = 2
+ end
+ if((valor_a > 50) and (valor_a <= 100))then
+ m = 1;
+ c = 3
+ end
+ end
+ if((maximoe == ql[i][1])and(ql[i][1] == ql[i][2])and(ql[i][1] == ql[i][3]))then
+ if((valor_a > 0)and(valor_a <= 30))then
+ m = -1
+ c = 1
+ end
+ if((valor_a > 30)and(valor_a <= 60))then
+ m = 0
+ c = 2
+ end
+ if((valor_a > 60)and(valor_a <= 100))then
+ m = 1
+ c = 3
+ end
+ end
+ if(m == -1)then
+ c = 1
+ end
+ if(m == 0)then
+ c = 2
+ end
+ if(m == 1)then
+ c = 3;
+ end
+ end
+
+ if(i<33)then
+
+ estado[i][6] = m
+ maximo = ql[i][1]
+ for l=2,3,1 do
+ if(maximo < ql[i][l])then
+ maximo = ql[i][l]
+ end
+ end
+ if(contador > 0) then
+ vql1 = ql[j][d]
+ vre1 = rl[i][6]
+ ql1 = ((1 - alfa)*(vql1)) + (alfa*(vre1 + lamda*maximo))
+ ql[j][d] = round(ql1)
+ if(ql[j][d] == 0)then
+ ql[j][d] = 0
+ end
+ end
+ end
+ if((contador > 0)and(i>32))then
+ vql2 = ql[j][d]
+ vre2 = repisodio*(-1500)
+ ql2 = ((1 - alfa)*(vql2)) + (alfa*vre2)
+ ql[j][d] = round(ql2)
+ if(ql[j][d] == 0)then
+ ql[j][d] = 0
+ end
+
+ end
+ if (estado[i][6]== 0) then
+ if(i<33)then
+ j=i
+ d=c
+ end
+ contador = contador + 1
+ forward()
+ break
+ end
+ if (estado[i][6]== -1) then
+ if(i<33)then
+ j=i
+ d=c
+ end
+ contador = contador + 1
+ left()
+ break
+ end
+ if (estado[i][6]== 1) then
+ if(i<33)then
+ j=i
+ d=c
+ end
+ contador = contador + 1
+ right()
+ break
+ end
+ if (estado[i][6] == 4) then
+ if(i<33)then
+ j=i
+ d=c
+ end
+ contador = contador + 1
+ stop()
+ break
+ end
+
+ end
+ end
+ end
+ end
+
+ end
+ end
+ end
+ if(episodionuevo==true)then
+
+ sim.setJointTargetVelocity(rueda_d,0)
+ sim.setJointTargetVelocity(rueda_i,0)
+ number_result=sim.stopSimulation()
+ end
+
+
+
+end
+function EpisodioActual()
+print('Episodio: '.. episodios)
+--Matriz Q
+print('La matriz Q es: ')
+for i=1, 32, 1 do
+ print(ql[i][1],ql[i][2],ql[i][3])
+end
+--normalizacion de la matriz Q
+for z=1, 32, 1 do
+ qla[z][1]= math.abs(ql[z][1])
+ if(qla[z][1]>mayor)then
+ mayor = qla[z][1]
+ end
+ qla[z][2]= math.abs(ql[z][2])
+ if(qla[z][2]>mayor)then
+ mayor = qla[z][2]
+ end
+ qla[z][3]= math.abs(ql[z][3])
+ if(qla[z][3]>mayor)then
+ mayor = qla[z][3]
+ end
+end
+print('El numero mayor es: ' .. mayor)
+print('La matriz normalizada Q es:')
+for z=1, 32, 1 do
+
+ Q[z][1]= (ql[z][1])
+
+ Q[z][2]= (ql[z][2])
+
+ Q[z][3]= (ql[z][3])
+
+ valq1= 100*(Q[z][1])/(mayor)
+ Q[z][1]= round(valq1)
+ valq2= 100*(Q[z][2])/(mayor)
+ Q[z][2]= round(valq2)
+ valq3= 100*(Q[z][3])/(mayor)
+ Q[z][3]= round(valq3)
+ if(Q[z][1] == 0)then
+ Q[z][1] = 0
+ end
+ if(Q[z][2] == 0)then
+ Q[z][2] = 0
+ end
+ if(Q[z][3] == 0)then
+ Q[z][3] = 0
+ end
+ print(Q[z][1], Q[z][2], Q[z][3])
+end
+end
+function EpisodioSiguiente()
+print('Episodio: '.. episodios)
+--Matriz Q
+print('La matriz Q es: ')
+for i=1, 32, 1 do
+ print(ql[i][1],ql[i][2],ql[i][3])
+end
+--normalizacion de la matriz Q
+for z=1, 32, 1 do
+ qla[z][1]= math.abs(ql[z][1])
+ if(qla[z][1]>mayor)then
+ mayor = qla[z][1]
+ end
+ qla[z][2]= math.abs(ql[z][2])
+ if(qla[z][2]>mayor)then
+ mayor = qla[z][2]
+ end
+ qla[z][3]= math.abs(ql[z][3])
+ if(qla[z][3]>mayor)then
+ mayor = qla[z][3]
+ end
+
+end
+print('El numero mayor es: ' .. mayor)
+print('La matriz normalizada Q es:')
+for z=1, 32, 1 do
+
+ Q[z][1]= (ql[z][1])
+
+ Q[z][2]= (ql[z][2])
+
+ Q[z][3]= (ql[z][3])
+
+ valq1= 100*(Q[z][1])/(mayor)
+ Q[z][1]= round(valq1)
+ valq2= 100*(Q[z][2])/(mayor)
+ Q[z][2]= round(valq2)
+ valq3= 100*(Q[z][3])/(mayor)
+ Q[z][3]= round(valq3)
+ if(Q[z][1] == 0)then
+ Q[z][1] = 0
+ end
+ if(Q[z][2] == 0)then
+ Q[z][2] = 0
+ end
+ if(Q[z][3] == 0)then
+ Q[z][3] = 0
+ end
+ print(Q[z][1], Q[z][2], Q[z][3])
+end
+pasos=round(pasos)
+cont_alfa=round(cont_alfa)
+pasosepi=round(pasosepi)
+print('Pasos en episodio: ' .. pasosepi)
+print('Pasos totales: ' .. pasos)
+archivo = io.open("pf_ql_AC_PF.txt","w")
+archivo:write("ql= {")
+archivo:close()
+archivo = io.open("pf_ql_AC_PF.txt","a")
+for i=1,31,1 do
+s = tostring(ql[i][1])
+l = tostring(ql[i][2])
+m = tostring(ql[i][3])
+val = "\n".."{"..s..","..l..","..m.."}"..","
+archivo:write(val)
+end
+s = tostring(ql[32][1])
+l = tostring(ql[32][2])
+m = tostring(ql[32][3])
+val = "\n".."{"..s..","..l..","..m.."}"
+archivo:write(val)
+val = "\n".."}"
+archivo:write(val)
+episodios=episodios+1
+e = tostring(episodios)
+val = "\n".."episodios".."="..e
+archivo:write(val)
+p = tostring(pasos)
+val = "\n".."pasos".."="..p
+archivo:write(val)
+c = tostring(cont_alfa)
+val = "\n".."cont_alfa".."="..c
+archivo:write(val)
+a = tostring(alfa)
+val = "\n".."alfa".."="..a
+archivo:write(val)
+ep = tostring(epsilon)
+val = "\n".."epsilon".."="..ep
+archivo:write(val)
+b = tostring(repisodio)
+val = "\n".."repisodio".."="..b
+archivo:write(val)
+archivo:close()
+episodionuevo=true
+end
+---------------------------------
+function Episodio_Siguiente()
+print('Episodio: '.. episodios)
+--Matriz Q
+print('La matriz Q es: ')
+for i=1, 32, 1 do
+ print(qle[i][1],qle[i][2],qle[i][3])
+end
+--normalizacion de la matriz Q
+for z=1, 32, 1 do
+ qla[z][1]= math.abs(qle[z][1])
+ if(qla[z][1]>mayor)then
+ mayor = qla[z][1]
+ end
+ qla[z][2]= math.abs(qle[z][2])
+ if(qla[z][2]>mayor)then
+ mayor = qla[z][2]
+ end
+ qla[z][3]= math.abs(qle[z][3])
+ if(qla[z][3]>mayor)then
+ mayor = qla[z][3]
+ end
+
+end
+print('El numero mayor es: ' .. mayor)
+print('La matriz normalizada Q es:')
+for z=1, 32, 1 do
+
+ Q[z][1]= (qle[z][1])
+
+ Q[z][2]= (qle[z][2])
+
+ Q[z][3]= (qle[z][3])
+
+ valq1= 100*(Q[z][1])/(mayor)
+ Q[z][1]= round(valq1)
+ valq2= 100*(Q[z][2])/(mayor)
+ Q[z][2]= round(valq2)
+ valq3= 100*(Q[z][3])/(mayor)
+ Q[z][3]= round(valq3)
+ if(Q[z][1] == 0)then
+ Q[z][1] = 0
+ end
+ if(Q[z][2] == 0)then
+ Q[z][2] = 0
+ end
+ if(Q[z][3] == 0)then
+ Q[z][3] = 0
+ end
+ print(Q[z][1], Q[z][2], Q[z][3])
+end
+pasos=round(pasos)
+cont_alfa=round(cont_alfa)
+pasosepi=round(pasosepi)
+print('Pasos en episodio: ' .. pasosepi)
+print('Pasos totales: ' .. pasos)
+archivo = io.open("pf_ql_AC_PF.txt","w")
+archivo:write("ql= {")
+archivo:close()
+archivo = io.open("pf_ql_AC_PF.txt","a")
+for i=1,31,1 do
+s = tostring(qle[i][1])
+l = tostring(qle[i][2])
+m = tostring(qle[i][3])
+val = "\n".."{"..s..","..l..","..m.."}"..","
+archivo:write(val)
+--archivo:close()
+end
+s = tostring(qle[32][1])
+l = tostring(qle[32][2])
+m = tostring(qle[32][3])
+val = "\n".."{"..s..","..l..","..m.."}"
+archivo:write(val)
+val = "\n".."}"
+archivo:write(val)
+episodios=episodios+1
+e = tostring(episodios)
+val = "\n".."episodios".."="..e
+archivo:write(val)
+p = tostring(pasos)
+val = "\n".."pasos".."="..p
+archivo:write(val)
+c = tostring(cont_alfa)
+val = "\n".."cont_alfa".."="..c
+archivo:write(val)
+a = tostring(alfa)
+val = "\n".."alfa".."="..a
+archivo:write(val)
+ep = tostring(epsilon)
+val = "\n".."epsilon".."="..ep
+archivo:write(val)
+b = tostring(repisodio)
+val = "\n".."repisodio".."="..b
+archivo:write(val)
+archivo:close()
+episodionuevo=true
+end
+---------------------------------
+function round(x)
+ return x>=0 and math.floor(x+0.5) or math.ceil(x-0.5)
+end
+function forward()
+sim.setJointTargetVelocity(rueda_d,1*max_speed/radio)
+sim.setJointTargetVelocity(rueda_i,1*max_speed/radio)
+
+ pasos=pasos+0.01
+ cont_alfa=cont_alfa+0.01
+ pasosepi=pasosepi+0.01
+end
+function left()
+sim.setJointTargetVelocity(rueda_d,1*max_speed/radio)
+sim.setJointTargetVelocity(rueda_i,0*max_speed/radio)-- -1
+
+ pasos=pasos+0.01
+ cont_alfa=cont_alfa+0.01
+ pasosepi=pasosepi+0.01
+end
+function right()
+
+sim.setJointTargetVelocity(rueda_d,0*max_speed/radio)-- -1
+sim.setJointTargetVelocity(rueda_i,1*max_speed/radio)
+
+ pasos=pasos+0.01
+ cont_alfa=cont_alfa+0.01
+ pasosepi=pasosepi+0.01
+end
+function stop()
+
+ sim.setJointTargetVelocity(rueda_d,0)
+ sim.setJointTargetVelocity(rueda_i,0)
+ print('Stop')
+ EpisodioSiguiente()
+end
+function Sensor(sensor)
+ local dist
+ local detected,distance=sim.readProximitySensor(sensor)
+ if(detected>0) then
+ distance = distance * 100
+
+ if (distance >= 30)then
+ dist = 0;
+ end
+ if (distance < 30 and distance >= 8)then
+ dist = 1;
+ end
+ if (distance < 8)then
+ dist = -1;
+ end
+ else
+ dist=0
+ end
+
+ return dist
+
+end
+function sysCall_sensing()
+dist5=Sensor(s5)
+dist4=Sensor(s4)
+dist3=Sensor(s3)
+dist2=Sensor(s2)
+dist1=Sensor(s1)
+
+end
+function sysCall_cleanup()
+end
+2.7.2.- Programación de los obstáculos dinámicos
+2.7.2.1.- Programación obstáculo dinámico en eje x
+En este tramo de programa primero se declara el objeto con la función
+sim.getObjectAssociatedWithScript. Luego se toma la posición absoluta del objeto
+(obstáculo) y se guardan en dos variables posi y posi_i las coordenadas x,y y z.
+Cuando se da inicio a la simulación la posición en x (posi[1]) se incrementa hasta
+llegar a la posición final deseada. Finalmente la posición se va decrementando hasta
+volver a la posición inicial posi_i.
+function sysCall_init()
+ h1=sim.getObjectAssociatedWithScript(sim.handle_self)
+ s=0.01
+ ax=0.005
+ ay=0.0025
+ az=0.0013
+ posi=sim.getObjectPosition(h1,-1)
+ posi_i=sim.getObjectPosition(h1,-1)
+ d_contraria = false
+ end
+function sysCall_actuation()
+ local t=sim.getSimulationTime()
+ local p={posi[1],posi[2],posi[3]}
+ if((posi[1]<posi_i[1]+0.9)and (d_contraria == false))then
+ posi[1] = (posi[1]+0.001)
+ end
+ if(p[1]>posi_i[1]+0.9)then
+ d_contraria = true
+ end
+ if(d_contraria == true)then
+ posi[1] = (posi[1]-0.001)
+ end
+ if(p[1]<posi_i[1])then
+ d_contraria = false
+ end
+ sim.setObjectPosition(h1,-1,p)
+end
+2.7.2.2.- Programación obstáculo dinámico en eje y
+En este tramo de programa primero se declara el objeto con la función
+sim.getObjectAssociatedWithScript. Luego se toma la posición absoluta del objeto
+(obstáculo) y se guardan en dos variables posi y posi_i las coordenadas x,y y z.
+Cuando se da inicio a la simulación la posición en y (posi[2]) se incrementa hasta
+llegar a la posición final deseada. Finalmente la posición se va decrementando hasta
+volver a la posición inicial posi_i.
+function sysCall_init()
+ h1=sim.getObjectAssociatedWithScript(sim.handle_self)
+ s=0.01
+ ax=0.005
+ ay=0.0025
+ az=0.0013
+ posi=sim.getObjectPosition(h1,-1)
+ posi_i=sim.getObjectPosition(h1,-1)
+ d_contraria = false
+ end
+function sysCall_actuation()
+ local t=sim.getSimulationTime()
+ local p={posi[1],posi[2],posi[3]}
+ if((posi[2]<posi_i[2]+0.9)and (d_contraria == false))then
+ posi[2] = (posi[2]+0.001)
+ end
+ if(p[2]>posi_i[2]+0.9)then
+ d_contraria = true
+ end
+ if(d_contraria == true)then
+ posi[2] = (posi[2]-0.001)
+ end
+ if(p[2]<posi_i[2])then
+ d_contraria = false
+ end
+ sim.setObjectPosition(h1,-1,p)
+end
